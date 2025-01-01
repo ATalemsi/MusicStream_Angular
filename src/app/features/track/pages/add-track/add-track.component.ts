@@ -1,50 +1,58 @@
-import {Component} from '@angular/core';
-import {MusicCategory, Track} from "../../../../core/models/track.model";
-import * as TrackActions from "../../store/track.actions"
-import {Store} from "@ngrx/store";
-import {FormsModule} from "@angular/forms";
+import { Component } from '@angular/core';
+import {FormBuilder, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
+import { Store } from '@ngrx/store';
+import { MusicCategory, Track } from "../../../../core/models/track.model";
+import * as TrackActions from "../../store/track.actions";
 import {CommonModule} from "@angular/common";
-
+import {NavbarComponent} from "../../../navbar/navbar.component";
 
 @Component({
   selector: 'app-add-track',
   standalone: true,
   imports: [
-    FormsModule , CommonModule
+    ReactiveFormsModule, CommonModule, NavbarComponent
   ],
   templateUrl: './add-track.component.html',
   styleUrl: './add-track.component.scss'
 })
 export class AddTrackComponent {
-  title: string = '';
-  artist: string = '';
-  description: string = '';
-  category: MusicCategory = MusicCategory.POP;
-  audioFile: File | null = null;
+  trackForm: FormGroup;
 
   categories: MusicCategory[] = Object.values(MusicCategory);
 
-  constructor(private readonly store: Store) {}
+  constructor(private readonly store: Store, private readonly fb: FormBuilder) {
+    this.trackForm = this.fb.group({
+      title: ['', Validators.required],
+      artist: ['', Validators.required],
+      description: [''],
+      category: [MusicCategory.POP],
+      audioFile: [null, Validators.required]
+    });
+  }
 
   onSubmit(): void {
-    console.log('Form submitted');
-    if (!this.audioFile) {
-      alert("Please upload a file");
+    console.log(this.trackForm.value);
+    if (this.trackForm.invalid) {
+      alert("Please fill out all required fields");
       return;
     }
 
+    const { title, artist, description, category, audioFile } = this.trackForm.value;
+    console.log({ title, artist, description, category, audioFile });
+
     const track: Track = {
       id: this.generateId(),
-      title: this.title,
-      artist: this.artist,
-      description: this.description,
+      title,
+      artist,
+      description,
       addedAt: new Date(),
       duration: 0,
-      category: this.category,
-      fileUrl: URL.createObjectURL(this.audioFile)
+      category,
+      fileUrl: URL.createObjectURL(audioFile)
     };
 
-    this.store.dispatch(TrackActions.addTrack({ track, audioFile: this.audioFile }));
+    console.log(track);
+    this.store.dispatch(TrackActions.addTrack({ track, audioFile }));
 
     alert("Track submission initiated");
 
@@ -54,24 +62,21 @@ export class AddTrackComponent {
   onFileChange(event: any): void {
     const file = event.target.files[0];
     if (file && file.type.startsWith('audio/')) {
-      this.audioFile = file;
+      this.trackForm.patchValue({ audioFile: file });
     } else {
       alert("Please upload a valid audio file");
-      this.audioFile = null;
+      this.trackForm.patchValue({ audioFile: null });
     }
   }
 
-
   resetForm(): void {
-    this.title = '';
-    this.artist = '';
-    this.description = '';
-    this.category = MusicCategory.POP;
-    this.audioFile = null;
+    this.trackForm.reset({
+      category: MusicCategory.POP,
+      audioFile: null
+    });
   }
 
   private generateId(): string {
     return 'track-' + Math.random().toString(36).substr(2, 9);
   }
-
 }

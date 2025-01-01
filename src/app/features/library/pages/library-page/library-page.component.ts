@@ -1,15 +1,18 @@
 import { Component } from '@angular/core';
 import {LibraryListComponent} from "../../components/library-list/library-list.component";
-import {LibraryItemComponent} from "../../components/library-item/library-item.component";
-import {RouterLink} from "@angular/router";
+import {
+  LibraryCategoriesComponent
+} from "../../components/library-categories/library-categories.component";
+import {NavbarComponent} from "../../../navbar/navbar.component";
+
 
 @Component({
   selector: 'app-library-page',
   standalone: true,
   imports: [
     LibraryListComponent,
-    LibraryItemComponent,
-    RouterLink
+    LibraryCategoriesComponent,
+    NavbarComponent
   ],
   templateUrl: './library-page.component.html',
   styleUrl: './library-page.component.scss'

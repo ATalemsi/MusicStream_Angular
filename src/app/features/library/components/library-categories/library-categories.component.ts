@@ -3,17 +3,17 @@ import {MusicCategory} from "../../../../core/models/track.model";
 import {KeyValuePipe, NgForOf, TitleCasePipe} from "@angular/common";
 
 @Component({
-  selector: 'app-library-item',
+  selector: 'app-library-categories',
   standalone: true,
   imports: [
     NgForOf,
     TitleCasePipe,
     KeyValuePipe
   ],
-  templateUrl: './library-item.component.html',
-  styleUrl: './library-item.component.scss'
+  templateUrl: './library-categories.component.html',
+  styleUrl: './library-categories.component.scss'
 })
-export class LibraryItemComponent {
+export class LibraryCategoriesComponent {
   musicCategory = MusicCategory;  // Access MusicCategory enum
   selectedCategory: MusicCategory | null = null;  // Track the selected category
 
