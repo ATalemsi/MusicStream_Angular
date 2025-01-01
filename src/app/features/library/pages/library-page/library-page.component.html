@@ -1,1 +1,21 @@
-<p>library-page works!</p>
+<div class="min-h-screen bg-gray-900 text-white py-8">
+  <div class="w-full max-w-4xl mx-auto px-4">
+
+    <h1 class="text-4xl font-bold text-center mb-8">Library</h1>
+
+
+    <div class="text-center mb-8">
+      <button
+        routerLink="/track/add"
+        class="bg-indigo-600 text-white px-6 py-3 rounded-lg text-lg hover:bg-indigo-700 focus:outline-none"
+      >
+        Add Track
+      </button>
+    </div>
+
+    <app-library-item></app-library-item>
+
+
+    <app-library-list></app-library-list>
+  </div>
+</div>

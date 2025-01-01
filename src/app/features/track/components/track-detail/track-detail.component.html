@@ -1,1 +1,44 @@
-<p>track-detail works!</p>
+<div class="min-h-screen bg-gray-900 text-white flex flex-col items-center py-8">
+  <div class="w-full max-w-4xl px-4">
+
+    <!-- Track details container -->
+    <div class="flex items-center space-x-8">
+      <!-- Track Cover Image (Using a default image URL) -->
+      <div class="w-48 h-48 bg-gray-700 rounded-lg overflow-hidden">
+        <img
+          src="https://via.placeholder.com/192x192/4c4c4c/ffffff?text=Track+Cover"
+          alt="Track cover"
+          class="w-full h-full object-cover">
+      </div>
+
+      <!-- Track Information -->
+      <div class="flex-1">
+        <!-- Track Title -->
+        <h1 class="text-3xl font-semibold truncate">{{ (track$ | async)?.title }}</h1>
+        <!-- Artist Name -->
+        <p class="text-lg text-gray-400">{{ (track$ | async)?.artist }}</p>
+
+        <!-- Track Description (Optional) -->
+        <p class="text-gray-300 mt-4">{{ (track$ | async)?.description }}</p>
+      </div>
+    </div>
+
+    <!-- Controls Section -->
+    <div class="mt-8 flex items-center justify-center space-x-6">
+      <!-- Play/Pause Button -->
+      <button class="bg-green-500 text-white py-2 px-6 rounded-lg text-lg hover:bg-green-400 transition duration-300">
+        Play
+      </button>
+
+      <!-- Add to Playlist Button -->
+      <button class="bg-gray-800 text-white py-2 px-6 rounded-lg text-lg hover:bg-gray-700 transition duration-300">
+        Add to Playlist
+      </button>
+    </div>
+
+    <!-- Progress Bar (Optional) -->
+    <div class="mt-8 w-full bg-gray-700 rounded-lg h-2">
+      <div class="bg-green-500 h-full rounded-lg" style="width: 50%"></div>
+    </div>
+  </div>
+</div>

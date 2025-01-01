@@ -1,1 +1,27 @@
-<p>library-item works!</p>
+<div class="bg-gray-900 text-white py-8">
+  <div class="w-full max-w-4xl mx-auto px-4">
+
+    <!-- Filter by Category Title -->
+    <h2 class="text-2xl font-semibold text-center mb-6">Filter by Category</h2>
+
+    <!-- Categories for Filtering -->
+    <div class="flex space-x-4 justify-center mb-8">
+      <!-- Loop through MusicCategory enum -->
+      <button
+        *ngFor="let category of musicCategory | keyvalue"
+        class="bg-gray-700 text-white px-6 py-3 rounded-lg focus:outline-none"
+        [class.bg-green-500]="isSelectedCategory(category.value)"
+        (click)="filterByCategory(category.value)">
+        {{ category.value | titlecase }}
+      </button>
+
+      <button
+        class="bg-gray-700 text-white px-6 py-3 rounded-lg focus:outline-none"
+        [class.bg-green-500]="selectedCategory === null"
+        (click)="filterByCategory(null)">
+        All
+      </button>
+    </div>
+
+  </div>
+</div>
