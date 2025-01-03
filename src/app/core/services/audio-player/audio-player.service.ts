@@ -1,7 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Store } from "@ngrx/store";
-import { setPlayerState } from "../../../shared/player.action";
-import { PlayerState, Track, MusicCategory } from "../../models/track.model";
+import { PlayerState, Track } from "../../models/track.model";
 import { BehaviorSubject } from "rxjs";
 
 @Injectable({
@@ -72,7 +70,7 @@ export class AudioPlayerService {
 
 
   previous(): void {
-    if (!this.playlist.length) return; // No tracks in playlist
+    if (!this.playlist.length) return;
 
 
     this.currentTrackIndex = (this.currentTrackIndex - 1 + this.playlist.length) % this.playlist.length;

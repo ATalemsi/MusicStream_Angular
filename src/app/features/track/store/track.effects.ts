@@ -39,7 +39,6 @@ export class TrackEffects {
     )
   );
 
-
   addTrack$ = createEffect(() =>
     this.action$.pipe(
       ofType(TrackActions.addTrack),
@@ -51,4 +50,29 @@ export class TrackEffects {
       )
     )
   );
+
+  updateTrack$ = createEffect(() =>
+    this.action$.pipe(
+      ofType(TrackActions.updateTrack),
+      mergeMap(({ updatedTrack, audioFile }) =>
+        this.trackService.updateTrack(updatedTrack, audioFile).pipe(
+          map((track) => TrackActions.updateTrackSuccess({ track })),
+          catchError((error) => of(TrackActions.updateTrackFailure({ error })))
+        )
+      )
+    )
+  );
+  // Delete track effect
+  deleteTrack$ = createEffect(() =>
+    this.action$.pipe(
+      ofType(TrackActions.deleteTrack),
+      mergeMap(({ id }) =>
+        this.trackService.deleteTrack(id).pipe(
+          map(() => TrackActions.deleteTrackSuccess({ id })),
+          catchError((error) => of(TrackActions.deleteTrackFailure({ error })))
+        )
+      )
+    )
+  );
+
 }

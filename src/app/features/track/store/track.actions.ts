@@ -18,7 +18,10 @@ export const addTrackSuccess=createAction('[Track] Add Track Success', props<{ t
 export const addTrackFailure=createAction('[Track] Add Track Failure', props<{ error: string }>());
 
 //update Track
-export const updateTrack=createAction('[Track] Update Track', props<{ track: Track }>());
+export const updateTrack = createAction(
+  '[Track] Update Track',
+  props<{ updatedTrack: Track, audioFile: Blob }>()
+);
 export const updateTrackSuccess=createAction('[Track] Update Track Success', props<{ track: Track }>());
 export const updateTrackFailure=createAction('[Track] Update Track Failure', props<{ error: string }>());
 

@@ -1,8 +1,7 @@
 import { Injectable } from '@angular/core';
-import {IndexeddbService} from "../indexeddb/indexeddb.service";
 import { Track } from '../../models/track.model';
-import {from, map, mergeMap, Observable, ObservedValueOf, of} from "rxjs";
-import {DBSchema, IDBPDatabase, openDB, StoreKey} from "idb";
+import {from, map, mergeMap, Observable} from "rxjs";
+import {DBSchema, IDBPDatabase, openDB} from "idb";
 
 
 interface TrackDB extends DBSchema {
@@ -40,11 +39,6 @@ export class TrackService {
     );
   }
 
-  getTrackMetadata(id: string): Observable<Track | undefined> {
-    return from(this.db!.get('tracks', id));
-  }
-
-
   saveAudioFile(id: string, file: Blob): Observable<void> {
     return from(this.db!.put('audioFiles', file, id)).pipe(
       map(() => {})
@@ -80,7 +74,7 @@ export class TrackService {
       Promise.all([
         this.db!.delete('tracks', id),
         this.db!.delete('audioFiles', id),
-      ]).then(() => {})) // Ensure the promise resolves with `void`
+      ]).then(() => {}))
   }
 
 
