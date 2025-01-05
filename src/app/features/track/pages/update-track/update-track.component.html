@@ -19,11 +19,60 @@
       <div class="bg-gradient-to-r from-gray-900/95 to-purple-900/95 border-b border-purple-500/20">
         <h2 class="text-2xl font-bold text-center py-6">
           <span class="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">
-            Add New Track
+            Update Track
           </span>
         </h2>
       </div>
+      <!-- Success Message Popup -->
+      <!-- Success Message Popup -->
+      <div *ngIf="successMessage"
+           class="fixed inset-0 flex items-center justify-center z-50 bg-black/40 backdrop-blur-sm animate__animated animate__fadeIn">
+        <div class="relative bg-gradient-to-br from-gray-900/95 to-purple-900/95 text-white p-8 rounded-xl
+              border border-purple-500/20 shadow-[0_0_50px_rgba(168,85,247,0.2)]
+              backdrop-blur-lg max-w-md mx-auto
+              animate__animated animate__fadeInUp">
+          <!-- Background Glow Effect -->
+          <div class="absolute -top-20 -right-20 w-60 h-60 bg-green-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-10 animate-blob"></div>
+          <div class="absolute -bottom-20 -left-20 w-60 h-60 bg-purple-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-10 animate-blob animation-delay-2000"></div>
 
+          <!-- Success Icon -->
+          <div class="mb-4 flex justify-center">
+            <div class="w-16 h-16 rounded-full bg-gradient-to-r from-green-500/20 to-emerald-500/20
+                  flex items-center justify-center border border-green-500/30">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   class="h-8 w-8 text-green-400"
+                   fill="none"
+                   viewBox="0 0 24 24"
+                   stroke="currentColor">
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- Message -->
+          <p class="text-center text-lg font-medium bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-emerald-300">
+            {{ successMessage }}
+          </p>
+
+          <!-- Close Button -->
+          <button
+            (click)="successMessage = ''"
+            class="mt-6 w-full group relative overflow-hidden px-6 py-3 rounded-full
+             bg-gradient-to-r from-green-500 to-emerald-500
+             text-white text-sm font-semibold tracking-wide
+             focus:outline-none transition-all duration-300
+             hover:shadow-[0_0_25px_rgba(34,197,94,0.5)]">
+            <span class="relative z-10">Close</span>
+            <div class="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600
+                  transform scale-x-0 group-hover:scale-x-100
+                  transition-transform origin-left">
+            </div>
+          </button>
+        </div>
+      </div>
       <div class="p-8">
         <form [formGroup]="trackForm" (ngSubmit)="onSubmit()" class="space-y-6">
           <!-- Title Input -->
@@ -38,9 +87,9 @@
                      focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent
                      text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-200"
             />
-            <div *ngIf="trackForm.get('title')?.invalid && trackForm.get('title')?.touched" class="text-pink-400 text-sm mt-1 animate__animated animate__fadeIn">
-              <div *ngIf="trackForm.get('title')?.hasError('required')">Title is required.</div>
-              <div *ngIf="trackForm.get('title')?.hasError('maxLength')">Title cannot exceed 40 characters.</div>
+            <div *ngIf="trackForm.get('title')?.invalid && trackForm.get('title')?.touched"
+                 class="text-pink-400 text-sm mt-1 animate__animated animate__fadeIn">
+              Title is required.
             </div>
           </div>
 
@@ -56,8 +105,9 @@
                      focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent
                      text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-200"
             />
-            <div *ngIf="trackForm.get('description')?.invalid && trackForm.get('description')?.touched" class="text-pink-400 text-sm mt-1 animate__animated animate__fadeIn">
-              <div *ngIf="trackForm.get('description')?.hasError('maxLength')">Description cannot exceed 200 characters.</div>
+            <div *ngIf="trackForm.get('artist')?.invalid && trackForm.get('artist')?.touched"
+                 class="text-pink-400 text-sm mt-1 animate__animated animate__fadeIn">
+              Artist is required.
             </div>
           </div>
 
@@ -94,24 +144,19 @@
 
           <!-- File Input -->
           <div>
-            <label for="audioFile" class="block text-sm font-medium text-purple-200">Audio File</label>
+            <label for="audioFile" class="block text-sm font-medium text-purple-200">Replace Audio File (Optional)</label>
             <div class="mt-1 relative">
               <input
                 type="file"
                 id="audioFile"
                 (change)="onFileChange($event)"
                 accept="audio/*"
-                required
                 class="block w-full text-sm text-purple-200
                        file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0
                        file:text-sm file:font-semibold file:bg-purple-500 file:text-white
                        hover:file:bg-purple-600 focus:outline-none cursor-pointer
                        border border-purple-500/30 rounded-lg p-2"
               />
-            </div>
-            <div *ngIf="trackForm.get('audioFile')?.invalid && trackForm.get('audioFile')?.touched"
-                 class="text-pink-400 text-sm mt-1 animate__animated animate__fadeIn">
-              Audio file is required.
             </div>
           </div>
 
@@ -123,7 +168,7 @@
                    text-white font-semibold tracking-wide focus:outline-none transition-all duration-300
                    hover:shadow-[0_0_25px_rgba(168,85,247,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span class="relative z-10">Add Track</span>
+            <span class="relative z-10">Update Track</span>
             <div class="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
           </button>
         </form>
@@ -131,24 +176,3 @@
     </div>
   </div>
 </div>
-
-<style>
-  @keyframes blob {
-    0% { transform: translate(0px, 0px) scale(1); }
-    33% { transform: translate(30px, -50px) scale(1.1); }
-    66% { transform: translate(-20px, 20px) scale(0.9); }
-    100% { transform: translate(0px, 0px) scale(1); }
-  }
-
-  .animate-blob {
-    animation: blob 7s infinite;
-  }
-
-  .animation-delay-2000 {
-    animation-delay: 2s;
-  }
-
-  .animation-delay-4000 {
-    animation-delay: 4s;
-  }
-</style>

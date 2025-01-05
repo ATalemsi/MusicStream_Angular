@@ -1,5 +1,5 @@
 import {createAction, props} from "@ngrx/store";
-import {Track} from "../../../core/models/track.model";
+import {Track} from "../../core/models/track.model";
 
 //load Tracks
 export const loadTracks = createAction('[Track] Load Tracks');
@@ -20,7 +20,7 @@ export const addTrackFailure=createAction('[Track] Add Track Failure', props<{ e
 //update Track
 export const updateTrack = createAction(
   '[Track] Update Track',
-  props<{ updatedTrack: Track, audioFile: Blob }>()
+  props<{ updatedTrack: Track, audioFile: Blob | null  }>()
 );
 export const updateTrackSuccess=createAction('[Track] Update Track Success', props<{ track: Track }>());
 export const updateTrackFailure=createAction('[Track] Update Track Failure', props<{ error: string }>());

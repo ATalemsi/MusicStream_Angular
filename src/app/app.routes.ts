@@ -17,6 +17,11 @@ export const routes: Routes = [
       import('./features/track/components/track-detail/track-detail.component').then(m => m.TrackDetailComponent),
   },
   {
+    path: 'track/edit/:id',
+    loadComponent: () =>
+      import('./features/track/pages/update-track/update-track.component').then(m => m.UpdateTrackComponent),
+  },
+  {
     path: '',
     redirectTo: 'library',
     pathMatch: 'full',

@@ -1,13 +1,14 @@
-import { Component, OnInit } from '@angular/core';
-import { Observable } from "rxjs";
-import { Track } from "../../../../core/models/track.model";
+import {Component, OnDestroy, OnInit} from '@angular/core';
+import {Observable, Subscription} from "rxjs";
+import {PlayerState, Track} from "../../../../core/models/track.model";
 import { Store } from "@ngrx/store";
-import { selectAllTracks, selectTrackError } from "../../../track/store/track.selectors";
-import * as TrackActions from "../../../track/store/track.actions";
-import { AsyncPipe, NgForOf, NgIf } from "@angular/common";
+import { selectAllTracks, selectTrackError } from "../../../store/track.selectors";
+import * as TrackActions from "../../../store/track.actions";
+import {AsyncPipe, NgForOf, NgIf, NgOptimizedImage} from "@angular/common";
 import { trigger, transition, style, animate } from '@angular/animations';
 import { Router } from '@angular/router';
 import {ClickOutsideDirective} from "../../../../shared/click-outside.directive";
+import {AudioPlayerService} from "../../../../core/services/audio-player/audio-player.service";
 
 @Component({
   selector: 'app-library-list',
@@ -17,6 +18,8 @@ import {ClickOutsideDirective} from "../../../../shared/click-outside.directive"
     AsyncPipe,
     NgForOf,
     ClickOutsideDirective,
+    NgOptimizedImage,
+
   ],
   templateUrl: './library-list.component.html',
   styleUrl: './library-list.component.scss',
@@ -32,17 +35,29 @@ import {ClickOutsideDirective} from "../../../../shared/click-outside.directive"
     ])
   ]
 })
-export class LibraryListComponent implements OnInit {
+export class LibraryListComponent implements OnInit , OnDestroy {
   tracks$: Observable<Track[]>;
   trackError$: Observable<string | null>;
   openDropdownId: string | null = null;
+  playerState: PlayerState = PlayerState.STOPPED;
+  private readonly playerStateSubscription: Subscription;
 
   constructor(
     private readonly store: Store,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly audioPlayer: AudioPlayerService
   ) {
     this.tracks$ = this.store.select(selectAllTracks);
     this.trackError$ = this.store.select(selectTrackError);
+    this.playerStateSubscription = this.audioPlayer.playerState$.subscribe(
+      (state: PlayerState) => this.playerState = state
+    );
+  }
+
+  ngOnDestroy(): void {
+    if (this.playerStateSubscription) {
+      this.playerStateSubscription.unsubscribe();
+    }
   }
 
   ngOnInit(): void {
@@ -64,8 +79,10 @@ export class LibraryListComponent implements OnInit {
   }
 
   onUpdateTrack(track: Track): void {
-
-    this.router.navigate(['/track/edit', track.id]);
+    console.log(`Navigating to edit track with ID: ${track.id}`);
+    this.router.navigate(['/track/edit', track.id]).catch(err => {
+      console.error('Navigation error:', err);
+    });
     this.closeDropdown(track.id);
   }
 
@@ -74,5 +91,17 @@ export class LibraryListComponent implements OnInit {
       this.store.dispatch(TrackActions.deleteTrack({ id: trackId }));
     }
     this.closeDropdown(trackId);
+  }
+
+  navigateToTrackDetails(track: Track): void {
+
+    this.audioPlayer.play(track).catch(error => {
+      console.error('Error playing track:', error);
+    });
+    this.router.navigate(['/track', track.id]).then(() => {
+      console.log('Navigated to track details');
+    }).catch(err => {
+      console.error('Navigation error:', err);
+    });
   }
 }

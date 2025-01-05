@@ -1,6 +1,6 @@
 import {Injectable} from "@angular/core";
 import {Actions, createEffect, ofType} from '@ngrx/effects';
-import {TrackService} from "../../../core/services/track/track.service";
+import {TrackService} from "../../core/services/track/track.service";
 import * as TrackActions from './track.actions';
 import {mergeMap, map, catchError, of} from "rxjs";
 
@@ -54,14 +54,22 @@ export class TrackEffects {
   updateTrack$ = createEffect(() =>
     this.action$.pipe(
       ofType(TrackActions.updateTrack),
-      mergeMap(({ updatedTrack, audioFile }) =>
-        this.trackService.updateTrack(updatedTrack, audioFile).pipe(
+      mergeMap(({ updatedTrack, audioFile }) => {
+        if (!audioFile) {
+          return of(
+            TrackActions.updateTrackFailure({
+              error: 'Audio file is required but was not provided.',
+            })
+          );
+        }
+        return this.trackService.updateTrack(updatedTrack, audioFile).pipe(
           map((track) => TrackActions.updateTrackSuccess({ track })),
           catchError((error) => of(TrackActions.updateTrackFailure({ error })))
-        )
-      )
+        );
+      })
     )
   );
+
   // Delete track effect
   deleteTrack$ = createEffect(() =>
     this.action$.pipe(

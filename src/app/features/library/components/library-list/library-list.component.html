@@ -32,7 +32,7 @@
               class="relative w-24 h-24 rounded-lg overflow-hidden group-hover:shadow-[0_0_20px_rgba(168,85,247,0.3)] transition-shadow duration-300"
               style="z-index: 3;">
               <img
-                src="https://via.placeholder.com/192x192/4c4c4c/ffffff?text=Track+Cover"
+                ngSrc="https://via.placeholder.com/192x192/4c4c4c/ffffff?text=Track+Cover"
                 alt="Track cover"
                 class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
             </div>
@@ -48,10 +48,12 @@
 
             <div class="flex items-center gap-4">
               <!-- Play Button -->
-              <button class="relative group/play w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500
-                           flex items-center justify-center focus:outline-none transition-all duration-300
-                           hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] transform hover:scale-110"
-                      style="z-index: 3;">
+              <button
+                (click)="navigateToTrackDetails(track)"
+                class="relative group/play w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500
+                 flex items-center justify-center focus:outline-none transition-all duration-300
+                 hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] transform hover:scale-110"
+                style="z-index: 3;">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"

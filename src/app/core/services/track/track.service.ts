@@ -1,8 +1,13 @@
 import { Injectable } from '@angular/core';
 import { Track } from '../../models/track.model';
-import {from, map, mergeMap, Observable} from "rxjs";
-import {DBSchema, IDBPDatabase, openDB} from "idb";
+import { catchError, from, map, mergeMap, Observable, throwError } from "rxjs";
+import { DBSchema, IDBPDatabase, openDB } from "idb";
 
+// Create an interface for the audio file storage
+interface AudioFileRecord {
+  id: string;
+  file: Blob;
+}
 
 interface TrackDB extends DBSchema {
   tracks: {
@@ -11,9 +16,10 @@ interface TrackDB extends DBSchema {
   };
   audioFiles: {
     key: string;
-    value: Blob;
+    value: AudioFileRecord;
   };
 }
+
 @Injectable({
   providedIn: 'root'
 })
@@ -25,82 +31,146 @@ export class TrackService {
   }
 
   private async initializeDB() {
-    this.db = await openDB<TrackDB>('trackDB', 1, {
-      upgrade(db) {
-        db.createObjectStore('tracks', { keyPath: 'id' });
-        db.createObjectStore('audioFiles', { keyPath: 'id' });
-      },
-    });
+    try {
+      this.db = await openDB<TrackDB>('trackDB', 1, {
+        upgrade(db) {
+          db.createObjectStore('tracks', { keyPath: 'id' });
+          db.createObjectStore('audioFiles', { keyPath: 'id' });
+        },
+      });
+    } catch (error) {
+      console.error('Database initialization failed:', error);
+    }
   }
 
   saveTrackMetadata(track: Track): Observable<void> {
-    return from(
-      this.db!.put('tracks', track).then(() => {})
-    );
+    if (!this.db) {
+      return throwError(() => new Error('Database not initialized'));
+    }
+    return from(this.db.put('tracks', track).then(() => {}));
   }
 
   saveAudioFile(id: string, file: Blob): Observable<void> {
-    return from(this.db!.put('audioFiles', file, id)).pipe(
-      map(() => {})
+    if (!this.db) {
+      console.error('Database not initialized');
+      return throwError(() => new Error('Database not initialized'));
+    }
+    if (!file.type.startsWith('audio/')) {
+      console.error('Invalid file type:', file.type);
+      return throwError(() => new Error('Invalid file type. Must be an audio file.'));
+    }
+    console.log('Saving file with ID:', id);
+    console.log('File details:', file);
+    const audioFileRecord: AudioFileRecord = {
+      id,
+      file
+    };
+    return from(
+      this.db.put('audioFiles', audioFileRecord)
+    ).pipe(
+      map(() => {
+        console.log('File and ID saved successfully');
+      }),
+      catchError((error) => {
+        console.error('Error saving audio file:', error);
+        return throwError(() => error);
+      })
     );
   }
-  getTrackById(id: string): Observable<Track | undefined> {
-    return from(this.db!.get('tracks', id));
-  }
 
+  getTrackById(id: string): Observable<Track | undefined> {
+    if (!this.db) {
+      return throwError(() => new Error('Database not initialized'));
+    }
+    return from(this.db.get('tracks', id));
+  }
 
   getAudioFile(id: string): Observable<Blob | undefined> {
-    return from(this.db!.get('audioFiles', id));
+    if (!this.db) {
+      return throwError(() => new Error('Database not initialized'));
+    }
+    return from(this.db.get('audioFiles', id)).pipe(
+      map(record => record?.file)
+    );
   }
 
-
   addTrack(track: Track, audioFile: Blob): Observable<Track> {
-    return this.saveTrackMetadata(track).pipe(
-      mergeMap(() => this.saveAudioFile(track.id, audioFile)),
-      map(() => track)
-    );
+    return new Observable<Track>((observer) => {
+      this.saveTrackMetadata(track).subscribe({
+        next: () => {
+          console.log('Track metadata saved successfully');
+          this.saveAudioFile(track.id, audioFile).subscribe({
+            next: () => {
+              console.log('Audio file saved successfully');
+              observer.next(track);
+              observer.complete();
+            },
+            error: (err) => {
+              console.error('Error saving audio file:', err);
+              observer.error(err);
+            },
+          });
+        },
+        error: (err) => {
+          console.error('Error saving track metadata:', err);
+          observer.error(err);
+        },
+      });
+    });
   }
 
   updateTrack(updatedTrack: Track, audioFile: Blob): Observable<Track> {
-    return this.saveTrackMetadata(updatedTrack).pipe(
-      mergeMap(() => this.saveAudioFile(updatedTrack.id, audioFile)),
-      map(() => updatedTrack)
-    );
+    return new Observable<Track>((observer) => {
+
+      this.saveTrackMetadata(updatedTrack).subscribe({
+        next: () => {
+          console.log('Track metadata updated successfully');
+          this.saveAudioFile(updatedTrack.id, audioFile).subscribe({
+            next: () => {
+              console.log('Audio file updated successfully');
+              observer.next(updatedTrack);
+              observer.complete();
+            },
+            error: (err) => {
+              console.error('Error updating audio file:', err);
+              observer.error(err);
+            },
+          });
+        },
+        error: (err) => {
+          console.error('Error updating track metadata:', err);
+          observer.error(err);
+        },
+      });
+    });
   }
 
 
   deleteTrack(id: string): Observable<void> {
+    if (!this.db) {
+      return throwError(() => new Error('Database not initialized'));
+    }
     return from(
       Promise.all([
-        this.db!.delete('tracks', id),
-        this.db!.delete('audioFiles', id),
-      ]).then(() => {}))
+        this.db.delete('tracks', id),
+        this.db.delete('audioFiles', id),
+      ]).then(() => {})
+    );
   }
-
-
-  validateTrackMetadata(track: Track): boolean {
-    if (track.title.length > 50) {
-      return false;
-    }
-    return !(track.description && track.description.length > 200);
-  }
-
-  validateAudioFile(file: Blob): boolean {
-
-    if (file.size > 15 * 1024 * 1024) {
-      return false;
-    }
-
-    const allowedTypes = ['audio/mp3', 'audio/wav', 'audio/ogg'];
-    return allowedTypes.includes(file.type);
-  }
-
 
   getAllTrackMetadata(): Observable<Track[]> {
-    return from(this.db!.getAll('tracks'));
+    if (!this.db) {
+      return throwError(() => new Error('Database not initialized'));
+    }
+    return from(this.db.getAll('tracks'));
   }
 
   getAllAudioFiles(): Observable<Blob[]> {
-    return from(this.db!.getAll('audioFiles'));
+    if (!this.db) {
+      return throwError(() => new Error('Database not initialized'));
+    }
+    return from(this.db.getAll('audioFiles')).pipe(
+      map(records => records.map(record => record.file)) // Extract Blobs from AudioFileRecords
+    );
   }
 }
