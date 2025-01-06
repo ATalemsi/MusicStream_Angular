@@ -30,9 +30,9 @@
                border border-purple-500/30 focus:outline-none transition-all duration-300
                hover:scale-105 hover:from-purple-500/40 hover:to-pink-500/40 hover:border-purple-400/50
                hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] animate__animated animate__fadeInUp"
-        [class.bg-gradient-to-r]="selectedCategory === null"
-        [class.from-purple-500]="selectedCategory === null"
-        [class.to-pink-500]="selectedCategory === null"
+        [class.bg-gradient-to-r]="selectedCategory$"
+        [class.from-purple-500]="selectedCategory$"
+        [class.to-pink-500]="selectedCategory$"
         (click)="filterByCategory(null)"
       >
         <span class="relative z-10 font-medium tracking-wide">All</span>

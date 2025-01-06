@@ -1,23 +1,42 @@
-import {Track} from "../../core/models/track.model";
+import {MusicCategory, Track} from "../../core/models/track.model";
 import {createReducer, on} from "@ngrx/store";
 import * as TrackActions from './track.actions';
 
 export interface TrackState {
   tracks: Track[];
+  selectedTrack: Track | null;
   loading: boolean;
   error: string | null;
+  selectedCategory: MusicCategory | null;
 }
 
 const initialState: TrackState = {
   tracks: [],
+  selectedTrack: null,
   loading: false,
   error: null,
+  selectedCategory: null
 }
 
 export const trackReducer = createReducer(
   initialState,
-  on(TrackActions.loadTracksSuccess, (state, {tracks}) => ({...state, tracks})),
-  on(TrackActions.loadTracksFailure, (state, {error}) => ({...state, error})),
+  on(TrackActions.loadTracks, (state) => ({
+    ...state,
+    loading: true,
+    error: null
+  })),
+  on(TrackActions.loadTracksSuccess, (state, { tracks }) => ({
+    ...state,
+    tracks,
+    loading: false,
+    error: null
+  })),
+
+  on(TrackActions.loadTracksFailure, (state, { error }) => ({
+    ...state,
+    loading: false,
+    error
+  })),
 
   on(TrackActions.addTrackSuccess, (state, {track}) => ({
     ...state,
@@ -42,4 +61,9 @@ export const trackReducer = createReducer(
   })),
 
   on(TrackActions.deleteTrackFailure, (state, {error}) => ({...state, error})),
+
+  on(TrackActions.setSelectedCategory, (state, { category }) => ({
+    ...state,
+    selectedCategory: category
+  }))
 )

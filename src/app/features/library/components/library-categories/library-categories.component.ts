@@ -1,6 +1,10 @@
 import { Component } from '@angular/core';
 import {MusicCategory} from "../../../../core/models/track.model";
 import {KeyValuePipe, NgForOf, TitleCasePipe} from "@angular/common";
+import {Observable} from "rxjs";
+import {selectSelectedCategory} from "../../../store/track.selectors";
+import {Store} from "@ngrx/store";
+import * as TrackActions from "../../../store/track.actions";
 
 @Component({
   selector: 'app-library-categories',
@@ -14,16 +18,22 @@ import {KeyValuePipe, NgForOf, TitleCasePipe} from "@angular/common";
   styleUrl: './library-categories.component.scss'
 })
 export class LibraryCategoriesComponent {
-  musicCategory = MusicCategory;  // Access MusicCategory enum
-  selectedCategory: MusicCategory | null = null;  // Track the selected category
+  musicCategory = MusicCategory;
+  selectedCategory$: Observable<MusicCategory | null>;
 
-  // Method to filter tracks based on selected category (you will pass this logic to the track listing component)
-  filterByCategory(category: MusicCategory | null): void {
-    this.selectedCategory = category;
+  constructor(private readonly store: Store) {
+    this.selectedCategory$ = this.store.select(selectSelectedCategory);
   }
 
-  // Method to check if the category is selected
+  filterByCategory(category: MusicCategory | null): void {
+    this.store.dispatch(TrackActions.setSelectedCategory({ category }));
+  }
+
   isSelectedCategory(category: MusicCategory): boolean {
-    return this.selectedCategory === category;
+    let isSelected = false;
+    this.selectedCategory$.subscribe(selected => {
+      isSelected = selected === category;
+    });
+    return isSelected;
   }
 }

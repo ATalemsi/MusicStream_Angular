@@ -1,14 +1,21 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
-import {Observable, Subscription} from "rxjs";
+import {BehaviorSubject, Observable, Subject, Subscription, takeUntil} from "rxjs";
 import {PlayerState, Track} from "../../../../core/models/track.model";
 import { Store } from "@ngrx/store";
-import { selectAllTracks, selectTrackError } from "../../../store/track.selectors";
+import {
+  selectAllTracks,
+  selectFilteredTracks,
+  selectTrackError,
+  selectTrackLoading
+} from "../../../store/track.selectors";
 import * as TrackActions from "../../../store/track.actions";
 import {AsyncPipe, NgForOf, NgIf, NgOptimizedImage} from "@angular/common";
-import { trigger, transition, style, animate } from '@angular/animations';
+import {trigger, transition, style, animate, stagger, query} from '@angular/animations';
 import { Router } from '@angular/router';
 import {ClickOutsideDirective} from "../../../../shared/click-outside.directive";
 import {AudioPlayerService} from "../../../../core/services/audio-player/audio-player.service";
+import {TrackSearchPipe} from "../../../../shared/pipe/track-search.pipe";
+import {FormsModule} from "@angular/forms";
 
 @Component({
   selector: 'app-library-list',
@@ -18,7 +25,9 @@ import {AudioPlayerService} from "../../../../core/services/audio-player/audio-p
     AsyncPipe,
     NgForOf,
     ClickOutsideDirective,
-    NgOptimizedImage,
+    TrackSearchPipe,
+    FormsModule,
+    NgOptimizedImage
 
   ],
   templateUrl: './library-list.component.html',
@@ -26,11 +35,27 @@ import {AudioPlayerService} from "../../../../core/services/audio-player/audio-p
   animations: [
     trigger('fadeInOut', [
       transition(':enter', [
-        style({ opacity: 0 }),
-        animate('0.5s 0.3s', style({ opacity: 1 }))
+        style({ opacity: 0, transform: 'translateY(20px)' }),
+        animate('300ms ease-out',
+          style({ opacity: 1, transform: 'translateY(0)' })
+        )
       ]),
       transition(':leave', [
-        animate('0.3s', style({ opacity: 0 }))
+        animate('200ms ease-in',
+          style({ opacity: 0, transform: 'translateY(-20px)' })
+        )
+      ])
+    ]),
+    trigger('listAnimation', [
+      transition('* => *', [
+        query(':enter', [
+          style({ opacity: 0, transform: 'translateY(20px)' }),
+          stagger(100, [
+            animate('300ms ease-out',
+              style({ opacity: 1, transform: 'translateY(0)' })
+            )
+          ])
+        ], { optional: true })
       ])
     ])
   ]
@@ -38,29 +63,47 @@ import {AudioPlayerService} from "../../../../core/services/audio-player/audio-p
 export class LibraryListComponent implements OnInit , OnDestroy {
   tracks$: Observable<Track[]>;
   trackError$: Observable<string | null>;
+  isLoading$: Observable<boolean>;
   openDropdownId: string | null = null;
   playerState: PlayerState = PlayerState.STOPPED;
+  searchTerm: string = '';
   private readonly playerStateSubscription: Subscription;
+  private readonly destroy$ = new Subject<void>();
+  private readonly imageLoadError = new BehaviorSubject<{[key: string]: boolean}>({});
+  imageLoadError$ = this.imageLoadError.asObservable();
+
+  readonly defaultCoverImage = 'https://res.cloudinary.com/dz4pww2qv/image/upload/v1735915190/apbake6pbviilhdi1brd.jpg';
+
 
   constructor(
     private readonly store: Store,
     private readonly router: Router,
     private readonly audioPlayer: AudioPlayerService
   ) {
-    this.tracks$ = this.store.select(selectAllTracks);
+    this.tracks$ = this.store.select(selectFilteredTracks);
     this.trackError$ = this.store.select(selectTrackError);
-    this.playerStateSubscription = this.audioPlayer.playerState$.subscribe(
-      (state: PlayerState) => this.playerState = state
-    );
+    this.isLoading$ = this.store.select(selectTrackLoading);
+    this.playerStateSubscription = this.audioPlayer.playerState$.pipe(takeUntil(this.destroy$))
+      .subscribe(state => this.playerState = state);
+
   }
 
+
   ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
     if (this.playerStateSubscription) {
       this.playerStateSubscription.unsubscribe();
     }
   }
 
+  private preloadDefaultImage(): void {
+    const img = new Image();
+    img.src = this.defaultCoverImage;
+  }
+
   ngOnInit(): void {
+    this.preloadDefaultImage();
     this.tracks$.subscribe((tracks) => {
       if (!tracks || tracks.length === 0) {
         this.store.dispatch(TrackActions.loadTracks());
@@ -68,6 +111,10 @@ export class LibraryListComponent implements OnInit , OnDestroy {
     });
   }
 
+  onSearchChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.searchTerm = input.value;
+  }
   toggleDropdown(trackId: string): void {
     this.openDropdownId = this.openDropdownId === trackId ? null : trackId;
   }
@@ -104,4 +151,29 @@ export class LibraryListComponent implements OnInit , OnDestroy {
       console.error('Navigation error:', err);
     });
   }
+
+  handleImageError(trackId: string, event: Event): void {
+    const imgElement = event.target as HTMLImageElement;
+    const currentErrors = this.imageLoadError.value;
+
+    if (!currentErrors[trackId]) {
+      this.imageLoadError.next({ ...currentErrors, [trackId]: true });
+      if (imgElement) {
+        imgElement.src = this.defaultCoverImage;
+        imgElement.onerror = null;
+      }
+      console.warn(`Image load failed for track ${trackId}, using fallback`);
+    }
+  }
+
+  getTrackImage(track: Track): string {
+    if (this.imageLoadError.value[track.id]) {
+      return this.defaultCoverImage;
+    }
+    if (!track.imageUrl) {
+      return this.defaultCoverImage;
+    }
+    return track.imageUrl;
+  }
+
 }

@@ -1,5 +1,5 @@
 import {createAction, props} from "@ngrx/store";
-import {Track} from "../../core/models/track.model";
+import {MusicCategory, Track} from "../../core/models/track.model";
 
 //load Tracks
 export const loadTracks = createAction('[Track] Load Tracks');
@@ -29,3 +29,11 @@ export const updateTrackFailure=createAction('[Track] Update Track Failure', pro
 export const deleteTrack=createAction('[Track] Delete Track', props<{ id: string }>());
 export const deleteTrackSuccess=createAction('[Track] Delete Track Success', props<{ id: string }>());
 export const deleteTrackFailure = createAction('[Track] Delete Track Failure', props<{ error: string }>());
+
+
+
+//filtrage with categories
+export const setSelectedCategory = createAction(
+  '[Track] Set Selected Category',
+  props<{ category: MusicCategory | null }>()
+);
