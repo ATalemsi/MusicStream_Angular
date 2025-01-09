@@ -42,8 +42,8 @@ export class TrackEffects {
   addTrack$ = createEffect(() =>
     this.action$.pipe(
       ofType(TrackActions.addTrack),
-      mergeMap(({ track, audioFile }) =>
-        this.trackService.addTrack(track, audioFile).pipe(
+      mergeMap(({ track, audioFile , imageFile}) =>
+        this.trackService.addTrack(track, audioFile , imageFile).pipe(
           map((newTrack) => TrackActions.addTrackSuccess({ track: newTrack })),
           catchError(error => of(TrackActions.addTrackFailure({ error })))
         )

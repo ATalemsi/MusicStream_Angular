@@ -1,21 +1,22 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
-import {BehaviorSubject, Observable, Subject, Subscription, takeUntil} from "rxjs";
-import {PlayerState, Track} from "../../../../core/models/track.model";
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { BehaviorSubject, Observable, Subject, Subscription, takeUntil } from "rxjs";
+import { PlayerState, Track } from "../../../../core/models/track.model";
 import { Store } from "@ngrx/store";
 import {
-  selectAllTracks,
   selectFilteredTracks,
   selectTrackError,
   selectTrackLoading
 } from "../../../store/track.selectors";
 import * as TrackActions from "../../../store/track.actions";
-import {AsyncPipe, NgForOf, NgIf, NgOptimizedImage} from "@angular/common";
-import {trigger, transition, style, animate, stagger, query} from '@angular/animations';
+import { AsyncPipe, NgForOf, NgIf, NgOptimizedImage } from "@angular/common";
+import { trigger, transition, style, animate, stagger, query } from '@angular/animations';
 import { Router } from '@angular/router';
-import {ClickOutsideDirective} from "../../../../shared/click-outside.directive";
-import {AudioPlayerService} from "../../../../core/services/audio-player/audio-player.service";
-import {TrackSearchPipe} from "../../../../shared/pipe/track-search.pipe";
-import {FormsModule} from "@angular/forms";
+import { ClickOutsideDirective } from "../../../../shared/click-outside.directive";
+import { AudioPlayerService } from "../../../../core/services/audio-player/audio-player.service";
+import { TrackSearchPipe } from "../../../../shared/pipe/track-search.pipe";
+import { FormsModule } from "@angular/forms";
+
+import { TrackService } from "../../../../core/services/track/track.service"; // Added import for TrackService
 
 @Component({
   selector: 'app-library-list',
@@ -27,11 +28,10 @@ import {FormsModule} from "@angular/forms";
     ClickOutsideDirective,
     TrackSearchPipe,
     FormsModule,
-    NgOptimizedImage
 
   ],
   templateUrl: './library-list.component.html',
-  styleUrl: './library-list.component.scss',
+  styleUrls: ['./library-list.component.scss'], // Corrected styleUrl to styleUrls
   animations: [
     trigger('fadeInOut', [
       transition(':enter', [
@@ -60,7 +60,7 @@ import {FormsModule} from "@angular/forms";
     ])
   ]
 })
-export class LibraryListComponent implements OnInit , OnDestroy {
+export class LibraryListComponent implements OnInit, OnDestroy {
   tracks$: Observable<Track[]>;
   trackError$: Observable<string | null>;
   isLoading$: Observable<boolean>;
@@ -69,25 +69,45 @@ export class LibraryListComponent implements OnInit , OnDestroy {
   searchTerm: string = '';
   private readonly playerStateSubscription: Subscription;
   private readonly destroy$ = new Subject<void>();
-  private readonly imageLoadError = new BehaviorSubject<{[key: string]: boolean}>({});
-  imageLoadError$ = this.imageLoadError.asObservable();
+  protected readonly imageLoadError = new BehaviorSubject<{ [key: string]: boolean }>({});
+  imageUrls: { [trackId: string]: string } = {};
 
   readonly defaultCoverImage = 'https://res.cloudinary.com/dz4pww2qv/image/upload/v1735915190/apbake6pbviilhdi1brd.jpg';
-
 
   constructor(
     private readonly store: Store,
     private readonly router: Router,
-    private readonly audioPlayer: AudioPlayerService
+    private readonly audioPlayer: AudioPlayerService,
+    private readonly trackService: TrackService,
   ) {
     this.tracks$ = this.store.select(selectFilteredTracks);
     this.trackError$ = this.store.select(selectTrackError);
     this.isLoading$ = this.store.select(selectTrackLoading);
     this.playerStateSubscription = this.audioPlayer.playerState$.pipe(takeUntil(this.destroy$))
       .subscribe(state => this.playerState = state);
-
   }
 
+  ngOnInit(): void {
+    this.preloadDefaultImage();
+    this.loadTracks();
+    this.tracks$.subscribe((tracks) => {
+      tracks.forEach((track) => {
+        if (track.imageFileId) {
+          this.trackService.getImageFileUrl(track.imageFileId).subscribe({
+            next: (url) => {
+              if (typeof url === "string") {
+                this.imageUrls[track.id!] = url;
+              }
+              console.log('Image URL fetched for track:', track.title, url);
+            },
+            error: (err) => {
+              console.error('Error fetching image file URL:', err);
+            },
+          });
+        }
+      });
+    });
+  }
 
   ngOnDestroy(): void {
     this.destroy$.next();
@@ -102,19 +122,55 @@ export class LibraryListComponent implements OnInit , OnDestroy {
     img.src = this.defaultCoverImage;
   }
 
-  ngOnInit(): void {
-    this.preloadDefaultImage();
-    this.tracks$.subscribe((tracks) => {
+  private loadTracks(): void {
+    this.tracks$.pipe(takeUntil(this.destroy$)).subscribe((tracks) => {
       if (!tracks || tracks.length === 0) {
         this.store.dispatch(TrackActions.loadTracks());
       }
     });
   }
 
+  handleImageError(trackId: string, event: Event): void {
+    console.error(`Image load error for track ${trackId}:`, {
+      type: event.type,
+      target: event.target,
+      currentTarget: event.currentTarget,
+      timeStamp: event.timeStamp,
+    });
+
+    this.store.dispatch(TrackActions.imageLoadError({ trackId }));
+    this.imageLoadError.next({ ...this.imageLoadError.value, [trackId]: true });
+  }
+
+  getTrackImage(track: Track): string {
+    if (!track.imageUrl) {
+      console.log(`No imageUrl for track ${track.id}`);
+      return this.defaultCoverImage;
+    }
+
+
+    if (this.isBlobUrl(track.imageUrl)) {
+      console.log(`Using blob URL for track ${track.id}:`, track.imageUrl);
+      return track.imageUrl;
+    }
+    const hasError = this.imageLoadError.value[track.id];
+    if (hasError) {
+      console.log(`Using default image for track ${track.id} due to previous error`);
+      return this.defaultCoverImage;
+    }
+    return track.imageUrl;
+  }
+
+
+  private isBlobUrl(url: string | undefined): boolean {
+    return <boolean>url?.startsWith('blob:');
+  }
+
   onSearchChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.searchTerm = input.value;
   }
+
   toggleDropdown(trackId: string): void {
     this.openDropdownId = this.openDropdownId === trackId ? null : trackId;
   }
@@ -141,7 +197,6 @@ export class LibraryListComponent implements OnInit , OnDestroy {
   }
 
   navigateToTrackDetails(track: Track): void {
-
     this.audioPlayer.play(track).catch(error => {
       console.error('Error playing track:', error);
     });
@@ -151,29 +206,4 @@ export class LibraryListComponent implements OnInit , OnDestroy {
       console.error('Navigation error:', err);
     });
   }
-
-  handleImageError(trackId: string, event: Event): void {
-    const imgElement = event.target as HTMLImageElement;
-    const currentErrors = this.imageLoadError.value;
-
-    if (!currentErrors[trackId]) {
-      this.imageLoadError.next({ ...currentErrors, [trackId]: true });
-      if (imgElement) {
-        imgElement.src = this.defaultCoverImage;
-        imgElement.onerror = null;
-      }
-      console.warn(`Image load failed for track ${trackId}, using fallback`);
-    }
-  }
-
-  getTrackImage(track: Track): string {
-    if (this.imageLoadError.value[track.id]) {
-      return this.defaultCoverImage;
-    }
-    if (!track.imageUrl) {
-      return this.defaultCoverImage;
-    }
-    return track.imageUrl;
-  }
-
 }

@@ -17,7 +17,7 @@ import {NavbarComponent} from "../../../navbar/navbar.component";
 })
 export class AddTrackComponent {
   trackForm: FormGroup;
-
+  imagePreview: string | null = null;
   categories: MusicCategory[] = Object.values(MusicCategory);
 
   constructor(private readonly store: Store, private readonly fb: FormBuilder) {
@@ -26,7 +26,8 @@ export class AddTrackComponent {
       artist: ['', Validators.required],
       description: ['', [Validators.maxLength(200)]],
       category: [MusicCategory.POP],
-      audioFile: [null, Validators.required]
+      audioFile: [null, Validators.required],
+      imageFile: [null , Validators.required]
     });
   }
   validateTrackMetadata(): boolean {
@@ -62,13 +63,54 @@ export class AddTrackComponent {
     return true;
   }
 
+  validateImageFile(file: File): boolean {
+    const MAX_IMAGE_SIZE_MB = 5;
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+    if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+      alert(`Image size exceeds ${MAX_IMAGE_SIZE_MB}MB. Please upload a smaller image.`);
+      return false;
+    }
+
+    if (!allowedImageTypes.includes(file.type)) {
+      alert("Invalid image type. Only JPEG, PNG, and WebP images are allowed.");
+      return false;
+    }
+
+    return true;
+  }
+
+  onImageChange(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+
+    if (file) {
+      if (this.validateImageFile(file)) {
+        this.trackForm.patchValue({ imageFile: file });
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          this.imagePreview = reader.result as string; // This will be a base64 string
+        };
+        reader.readAsDataURL(file); // Read the file as a data URL
+      } else {
+        this.trackForm.patchValue({ imageFile: null });
+        this.imagePreview = null;
+      }
+    }
+  }
+
+  removeImage(): void {
+    this.trackForm.patchValue({ imageFile: null });
+    this.imagePreview = null;
+  }
+
+
   private getAudioDuration(file: Blob): Promise<number> {
     return new Promise((resolve, reject) => {
       const audioElement = new Audio();
       audioElement.preload = 'metadata';
 
       audioElement.onloadedmetadata = () => {
-        // Convert duration from seconds to milliseconds
         window.URL.revokeObjectURL(audioElement.src);
         resolve(Math.round(audioElement.duration * 1000));
       };
@@ -83,7 +125,7 @@ export class AddTrackComponent {
   }
 
   async onSubmit(): Promise<void> {
-    if (this.trackForm.invalid || !this.validateTrackMetadata() || !this.validateAudioFile(this.trackForm.value.audioFile)) {
+    if (this.trackForm.invalid || !this.validateTrackMetadata() || !this.validateAudioFile(this.trackForm.value.audioFile) || (this.trackForm.value.imageFile && !this.validateImageFile(this.trackForm.value.imageFile))) {
       alert("Please check the form for validation errors.");
       return;
     }
@@ -93,28 +135,30 @@ export class AddTrackComponent {
       return;
     }
 
-    const {title, artist, description, category, audioFile} = this.trackForm.value;
+    const {title, artist, description, category, audioFile , imageFile} = this.trackForm.value;
 
     console.log('Audio File:', audioFile);
+    console.log('Image File:', imageFile);
 
     if (audioFile) {
       try {
-        // Get audio duration before creating the track
         const duration = await this.getAudioDuration(audioFile);
-
+         const idT  =this.generateId();
         const track: Track = {
-          id: this.generateId(),
+          id:idT ,
           title,
           artist,
           description,
           addedAt: new Date(),
           duration,
           category,
-          fileUrl: URL.createObjectURL(audioFile)
+          fileUrl: URL.createObjectURL(audioFile),
+          imageUrl: imageFile ? URL.createObjectURL(imageFile) : undefined,
+          imageFileId:idT
         };
 
         console.log('Track:', track);
-        this.store.dispatch(TrackActions.addTrack({track, audioFile}));
+        this.store.dispatch(TrackActions.addTrack({track, audioFile, imageFile}));
 
         alert("Track submission initiated");
         this.resetForm();
@@ -125,8 +169,6 @@ export class AddTrackComponent {
     } else {
       alert("Audio file is required.");
     }
-    alert("Track submission initiated");
-
     this.resetForm();
   }
 
@@ -143,7 +185,8 @@ export class AddTrackComponent {
   resetForm(): void {
     this.trackForm.reset({
       category: MusicCategory.POP,
-      audioFile: null
+      audioFile: null,
+      imageFile: null
     });
   }
 

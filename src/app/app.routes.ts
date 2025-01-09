@@ -26,8 +26,4 @@ export const routes: Routes = [
     redirectTo: 'library',
     pathMatch: 'full',
   },
-  {
-    path: '**',
-    redirectTo: 'library',
-  },
 ];

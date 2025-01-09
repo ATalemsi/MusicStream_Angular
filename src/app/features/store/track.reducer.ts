@@ -3,6 +3,7 @@ import {createReducer, on} from "@ngrx/store";
 import * as TrackActions from './track.actions';
 
 export interface TrackState {
+  imageLoadErrors: any;
   tracks: Track[];
   selectedTrack: Track | null;
   loading: boolean;
@@ -12,6 +13,7 @@ export interface TrackState {
 
 const initialState: TrackState = {
   tracks: [],
+  imageLoadErrors: null,
   selectedTrack: null,
   loading: false,
   error: null,
@@ -65,5 +67,12 @@ export const trackReducer = createReducer(
   on(TrackActions.setSelectedCategory, (state, { category }) => ({
     ...state,
     selectedCategory: category
+  })),
+  on(TrackActions.imageLoadError, (state, { trackId }) => ({
+    ...state,
+    imageLoadErrors: {
+      ...state.imageLoadErrors,
+      [trackId]: true
+    }
   }))
 )

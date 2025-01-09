@@ -27,3 +27,8 @@ export const selectFilteredTracks = createSelector(
     return tracks.filter(track => track.category === selectedCategory);
   }
 );
+
+export const selectImageLoadErrors = createSelector(
+  selectTrackState,
+  (state: TrackState) => state.imageLoadErrors
+);

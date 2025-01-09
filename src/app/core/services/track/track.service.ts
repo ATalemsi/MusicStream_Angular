@@ -1,10 +1,14 @@
 import { Injectable } from '@angular/core';
 import { Track } from '../../models/track.model';
-import { catchError, from, map, mergeMap, Observable, throwError } from "rxjs";
+import {catchError, from, map, Observable, of, throwError} from "rxjs";
 import { DBSchema, IDBPDatabase, openDB } from "idb";
 
-// Create an interface for the audio file storage
 interface AudioFileRecord {
+  id: string;
+  file: Blob;
+}
+
+interface ImageFileRecord {
   id: string;
   file: Blob;
 }
@@ -18,13 +22,17 @@ interface TrackDB extends DBSchema {
     key: string;
     value: AudioFileRecord;
   };
+  imageFiles: {
+    key: string;
+    value: ImageFileRecord;
+  };
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class TrackService {
-  private db: IDBPDatabase<TrackDB> | undefined;
+  private db!: IDBPDatabase<TrackDB> | undefined;
 
   constructor() {
     this.initializeDB();
@@ -34,8 +42,15 @@ export class TrackService {
     try {
       this.db = await openDB<TrackDB>('trackDB', 1, {
         upgrade(db) {
-          db.createObjectStore('tracks', { keyPath: 'id' });
-          db.createObjectStore('audioFiles', { keyPath: 'id' });
+          if (!db.objectStoreNames.contains('tracks')) {
+            db.createObjectStore('tracks', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('audioFiles')) {
+            db.createObjectStore('audioFiles', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('imageFiles')) {
+            db.createObjectStore('imageFiles', { keyPath: 'id' });
+          }
         },
       });
     } catch (error) {
@@ -59,8 +74,7 @@ export class TrackService {
       console.error('Invalid file type:', file.type);
       return throwError(() => new Error('Invalid file type. Must be an audio file.'));
     }
-    console.log('Saving file with ID:', id);
-    console.log('File details:', file);
+    console.log('Saving audio file with ID:', id);
     const audioFileRecord: AudioFileRecord = {
       id,
       file
@@ -69,10 +83,37 @@ export class TrackService {
       this.db.put('audioFiles', audioFileRecord)
     ).pipe(
       map(() => {
-        console.log('File and ID saved successfully');
+        console.log('Audio file saved successfully');
       }),
       catchError((error) => {
         console.error('Error saving audio file:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  saveImageFile(id: string, file: Blob): Observable<void> {
+    if (!this.db) {
+      console.error('Database not initialized');
+      return throwError(() => new Error('Database not initialized'));
+    }
+    if (!file.type.startsWith('image/')) {
+      console.error('Invalid file type:', file.type);
+      return throwError(() => new Error('Invalid file type. Must be an image file.'));
+    }
+    console.log('Saving image file with ID:', id);
+    const imageFileRecord: ImageFileRecord = {
+      id,
+      file
+    };
+    return from(
+      this.db.put('imageFiles', imageFileRecord)
+    ).pipe(
+      map(() => {
+        console.log('Image file saved successfully');
+      }),
+      catchError((error) => {
+        console.error('Error saving image file:', error);
         return throwError(() => error);
       })
     );
@@ -94,16 +135,32 @@ export class TrackService {
     );
   }
 
-  addTrack(track: Track, audioFile: Blob): Observable<Track> {
+  addTrack(track: Track, audioFile: Blob, imageFile?: Blob): Observable<Track> {
     return new Observable<Track>((observer) => {
       this.saveTrackMetadata(track).subscribe({
         next: () => {
           console.log('Track metadata saved successfully');
+
           this.saveAudioFile(track.id, audioFile).subscribe({
             next: () => {
               console.log('Audio file saved successfully');
-              observer.next(track);
-              observer.complete();
+
+              if (imageFile) {
+                this.saveImageFile(track.id, imageFile).subscribe({
+                  next: () => {
+                    console.log('Image file saved successfully');
+                    observer.next(track);
+                    observer.complete();
+                  },
+                  error: (err) => {
+                    console.error('Error saving image file:', err);
+                    observer.error(err);
+                  }
+                });
+              } else {
+                observer.next(track);
+                observer.complete();
+              }
             },
             error: (err) => {
               console.error('Error saving audio file:', err);
@@ -119,17 +176,53 @@ export class TrackService {
     });
   }
 
-  updateTrack(updatedTrack: Track, audioFile: Blob): Observable<Track> {
-    return new Observable<Track>((observer) => {
+  getImageFileUrl(id: string): Observable<string | null> {
+    if (!this.db) {
+      return throwError(() => new Error('Database not initialized'));
+    }
 
+    return from(this.db.get('imageFiles', id)).pipe(
+      map(record => {
+        if (record?.file instanceof Blob) {
+          return URL.createObjectURL(record.file);
+        }
+        return null;
+      }),
+      catchError(error => {
+        console.error('Error getting image file:', error);
+        return of(null);
+      })
+    );
+  }
+
+  updateTrack(updatedTrack: Track, audioFile: Blob, imageFile?: Blob): Observable<Track> {
+    return new Observable<Track>((observer) => {
       this.saveTrackMetadata(updatedTrack).subscribe({
         next: () => {
           console.log('Track metadata updated successfully');
+
+          // Update audio file
           this.saveAudioFile(updatedTrack.id, audioFile).subscribe({
             next: () => {
               console.log('Audio file updated successfully');
-              observer.next(updatedTrack);
-              observer.complete();
+
+              // If there's an image file, update it
+              if (imageFile) {
+                this.saveImageFile(updatedTrack.id, imageFile).subscribe({
+                  next: () => {
+                    console.log('Image file updated successfully');
+                    observer.next(updatedTrack);
+                    observer.complete();
+                  },
+                  error: (err) => {
+                    console.error('Error updating image file:', err);
+                    observer.error(err);
+                  }
+                });
+              } else {
+                observer.next(updatedTrack);
+                observer.complete();
+              }
             },
             error: (err) => {
               console.error('Error updating audio file:', err);
@@ -145,7 +238,6 @@ export class TrackService {
     });
   }
 
-
   deleteTrack(id: string): Observable<void> {
     if (!this.db) {
       return throwError(() => new Error('Database not initialized'));
@@ -154,6 +246,7 @@ export class TrackService {
       Promise.all([
         this.db.delete('tracks', id),
         this.db.delete('audioFiles', id),
+        this.db.delete('imageFiles', id),
       ]).then(() => {})
     );
   }
@@ -170,7 +263,18 @@ export class TrackService {
       return throwError(() => new Error('Database not initialized'));
     }
     return from(this.db.getAll('audioFiles')).pipe(
-      map(records => records.map(record => record.file)) // Extract Blobs from AudioFileRecords
+      map(records => records.map(record => record.file))
     );
   }
+
+  getAllImageFiles(): Observable<Blob[]> {
+    if (!this.db) {
+      return throwError(() => new Error('Database not initialized'));
+    }
+    return from(this.db.getAll('imageFiles')).pipe(
+      map(records => records.map(record => record.file))
+    );
+  }
+
+
 }

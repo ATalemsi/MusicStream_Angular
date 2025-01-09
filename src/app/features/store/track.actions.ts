@@ -12,7 +12,11 @@ export const loadTrackFailure = createAction('[Track] Load Track Failure', props
 //add track
 export const addTrack = createAction(
   '[Track] Add Track',
-  props<{ track: Track, audioFile: Blob }>()
+  props<{
+    track: Track;
+    audioFile: Blob;
+    imageFile?: File;
+  }>()
 );
 export const addTrackSuccess=createAction('[Track] Add Track Success', props<{ track: Track }>());
 export const addTrackFailure=createAction('[Track] Add Track Failure', props<{ error: string }>());
@@ -36,4 +40,24 @@ export const deleteTrackFailure = createAction('[Track] Delete Track Failure', p
 export const setSelectedCategory = createAction(
   '[Track] Set Selected Category',
   props<{ category: MusicCategory | null }>()
+);
+
+export const loadTrackImage = createAction(
+  '[Track] Load Track Image',
+  props<{ trackId: string }>()
+);
+
+export const loadTrackImageSuccess = createAction(
+  '[Track] Load Track Image Success',
+  props<{ trackId: string; imageUrl: string }>()
+);
+
+export const loadTrackImageFailure = createAction(
+  '[Track] Load Track Image Failure',
+  props<{ trackId: string; error: string }>()
+);
+
+export const imageLoadError = createAction(
+  '[Track] Image Load Error',
+  props<{ trackId: string }>()
 );
