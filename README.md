@@ -1,4 +1,4 @@
-```plaintext
+
 # MusicStream 🎵
 
 MusicStream est une application web de streaming musical développée avec Angular, permettant aux utilisateurs de gérer et écouter leur musique locale avec une interface moderne et intuitive.
