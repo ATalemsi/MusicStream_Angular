@@ -50,7 +50,6 @@ export class TrackDetailComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.store.dispatch(TrackActions.loadTracks());
-
     this.routeSubscription = this.route.paramMap.pipe(
       switchMap((params: ParamMap) => {
         const trackId = params.get('id');
@@ -92,17 +91,11 @@ export class TrackDetailComponent implements OnInit, OnDestroy {
 
   loadTrackImage(track: Track): void {
     if (!track) return;
-
-    if (track.imageUrl?.startsWith('blob:')) {
-      this.currentImageUrl = track.imageUrl;
-      return;
-    }
-
     this.imageUrlSubscription = this.trackService.getImageFileUrl(track.id).subscribe({
       next: (url) => {
         if (url) {
           console.log('Received image URL:', url);
-          this.currentImageUrl = url;
+          this.currentImageUrl =url;
         } else {
           console.log('No image URL found, using default');
           this.currentImageUrl = this.defaultCoverImage;

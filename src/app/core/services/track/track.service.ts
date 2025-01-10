@@ -184,7 +184,9 @@ export class TrackService {
     return from(this.db.get('imageFiles', id)).pipe(
       map(record => {
         if (record?.file instanceof Blob) {
-          return URL.createObjectURL(record.file);
+          const image = URL.createObjectURL(record.file);
+          console.log(image)
+          return image
         }
         return null;
       }),
