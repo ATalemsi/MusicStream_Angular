@@ -43,7 +43,7 @@ MusicStream est une application web de streaming musical développée avec Angul
 
 1. Cloner le repository
 ```bash
-git clone https://github.com/votre-username/musicstream.git
+git clone https://github.com/ATalemsi/musicstream.git
 cd musicstream
 ```
 
